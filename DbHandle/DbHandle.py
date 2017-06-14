@@ -53,32 +53,30 @@ SQLCreate = [SQLCreateStyles,
 	SQLCreateLog]
 
 ## Fill Catalogs
-CATALOGS = {"Styles": ["SUV", 
-		       "PickUp", 
-		       "Hatchback", 
-		       "Van", 
-		       "Sedan"],
-	    "Makes": ["Dodge", 
-	 	      "Chrysler", 
-		      "Ford", 
-		      "Toyota", 
-		      "Nissan", 
-		      "Chevrolet", 
-		      "Pontiac"],
-	    "Model": {"Caravan": 1, 
-		      "Intrepid": 1, 
-		      "Vibe": 7, 
-		      "Town and Country": 2, 
-		      "Escape": 3, 
-		      "Spark": 6, 
-		      "Malibu": 6},
-	    "Specialty": ["General", 
-			  "Electrical", 
-			  "Transmission", 
-			  "Motor"]
-	   }
+CATALOGS = [["SUV", "PickUp", "Hatchback", "Van", "Sedan"],
+	["Dodge", "Chrysler", "Ford", "Toyota", "Nissan", "Chevrolet", 
+	"Pontiac"],
+	["General", "Electrical", "Transmission", "Motor"],
+	{"Caravan": 1, "Intrepid": 1, "Vibe": 7, "Town and Country": 2, 
+	"Escape": 3, "Spark": 6, "Malibu": 6}]
 
-SQLInsert = """INSERT OR REPLACE INTO """
+SQLInsertStyles = """INSERT OR REPLACE INTO Styles(
+		  Style) 
+		  VALUES(?)"""
+SQLInsertMakes = """INSERT OR REPLACE INTO Makes(
+		  Make) 
+		  VALUES(?)"""
+SQLInsertSpecialty = """INSERT OR REPLACE INTO Specialty(
+		  	Specialty) 
+		  	VALUES(?)"""
+SQLInsertModel = """INSERT OR REPLACE INTO Model(
+		  MakeId,
+		  Model) 
+		  VALUES(?, ?)"""
+SQLInsertCat = [SQLInsertStyles,
+		SQLInsertMakes, 
+		SQLInsertSpecialty, 
+		SQLInsertModel]
 
 ##Functions
 def createTables(conn, cursor):
@@ -90,20 +88,24 @@ def createTables(conn, cursor):
 		else:
 			conn.commit()
 
-def fillCatalogs():
-	for key, values in CATALOGS.items():
-		print SQLInsert + key 
-		print values
+def fillCatalogs(conn, cursor):
+	for i in range(len(SQLInsertCat)):
+		sql = SQLInsertCat[i]
+		catalog = CATALOGS[i]
+		try:
+			if type(catalog) != dict:
+				for j in range(len(catalog)):
+					cursor.execute(sql, (catalog[j],))
+			else:
+				for key, val in catalog.items():
+					cursor.execute(sql, (val, key))
 		
-		## "?," * len values  
-
-		if key != "Model":
-			for val in values:
-				print val
+		except Exception as err:
+			print "Error when filling catalogs" + err
+		
 		else:
-			for k, val in values.items():
-				print k, val
-		print "\n"
+			conn.commit()
+
 
 def handleDB():
 	try:
@@ -118,9 +120,11 @@ def handleDB():
 		cursor = conn.cursor()
 
 		##Create all tables
-		#createTables(conn, cursor)
+		createTables(conn, cursor)
 
-		fillCatalogs()	
+		##Fill the catalogs
+		fillCatalogs(conn, cursor)
+		print "Catalogs filled."
 
 	finally:
 		conn.close()
